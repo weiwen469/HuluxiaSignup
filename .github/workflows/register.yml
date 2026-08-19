@@ -1,0 +1,39 @@
+﻿name: 自动注册葫芦侠账号
+
+on:
+  workflow_dispatch:    # 手动触发
+  schedule:
+    - cron: "0 0 * * *"   # 每天 UTC 0:00 运行一次
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 安装 Playwright 浏览器
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: 运行注册脚本
+        env:
+          HAOZHU_TOKEN: ${{ secrets.HAOZHU_TOKEN }}
+          HAOZHU_SID: ${{ secrets.HAOZHU_SID }}
+          ACCOUNT_PASSWORD: ${{ secrets.ACCOUNT_PASSWORD }}
+          SMS_TIMEOUT: ${{ secrets.SMS_TIMEOUT }}
+          POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
+          MIN_BALANCE: ${{ secrets.MIN_BALANCE }}
+        run: python main.py
