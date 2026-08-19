@@ -1,29 +1,35 @@
 ﻿name: 自动注册葫芦侠账号
 
 on:
-  workflow_dispatch:    # 手动触发
+  workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"   # 每天 UTC 0:00 运行一次
+    - cron: "0 0 * * *"
 
 jobs:
   register:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 设置 Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: 安装依赖
+      - name: 安装 Python 依赖
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 安装 Playwright 浏览器
+      - name: 缓存 Playwright 浏览器
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: 安装 Playwright 浏览器（仅缓存未命中时）
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: |
           playwright install chromium
           playwright install-deps chromium
