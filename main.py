@@ -87,6 +87,14 @@ class Config:
         os.getenv("MIN_BALANCE", "0")
     )
 
+    # ========================================================
+    # 每次运行注册几个账号
+    # ========================================================
+
+    register_count: int = int(
+        os.getenv("REGISTER_COUNT", "1")
+    )
+
 
 # ============================================================
 # 账号注册器
@@ -820,31 +828,81 @@ def save_account(result: dict) -> None:
 
 def main():
 
-    try:
+    config = Config()
 
-        config = Config()
+    total = config.register_count
+    success = 0
+    failed = 0
 
-        registrar = AccountRegistrar(
-            config
+    logger.info(
+        "=" * 40
+    )
+    logger.info(
+        "本次计划注册 %d 个账号",
+        total
+    )
+    logger.info(
+        "=" * 40
+    )
+
+    for i in range(1, total + 1):
+
+        logger.info(
+            "=" * 40
+        )
+        logger.info(
+            "第 %d / %d 个账号",
+            i, total
+        )
+        logger.info(
+            "=" * 40
         )
 
-        result = registrar.register()
+        try:
 
-        save_account(result)
+            registrar = AccountRegistrar(
+                config
+            )
 
-        print()
-        print("========================================")
-        print("最终结果")
-        print("========================================")
-        print(result)
-        print("========================================")
+            result = registrar.register()
 
-    except Exception as e:
+            save_account(result)
 
-        logger.error(
-            "任务执行失败: %s",
-            e
-        )
+            success += 1
+
+            logger.info(
+                "第 %d 个账号注册成功: %s",
+                i, result.get("phone", "?")
+            )
+
+        except Exception as e:
+
+            failed += 1
+
+            logger.error(
+                "第 %d 个账号注册失败: %s",
+                i, e
+            )
+
+        # 账号之间停顿一下，避免接码平台限流
+        if i < total:
+            wait = 3
+            logger.info(
+                "等待 %d 秒后继续下一个...",
+                wait
+            )
+            time.sleep(wait)
+
+    logger.info(
+        "=" * 40
+    )
+    logger.info(
+        "全部完成: 成功 %d / %d, 失败 %d",
+        success, total, failed
+    )
+    logger.info(
+        "=" * 40
+    )
 
 
 # ============================================================

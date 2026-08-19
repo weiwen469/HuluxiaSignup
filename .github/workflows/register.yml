@@ -2,6 +2,11 @@
 
 on:
   workflow_dispatch:
+    inputs:
+      count:
+        description: "注册几个账号"
+        required: false
+        default: "5"
   schedule:
     - cron: "0 0 * * *"
 
@@ -50,6 +55,7 @@ jobs:
           SMS_TIMEOUT: ${{ secrets.SMS_TIMEOUT }}
           POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
           MIN_BALANCE: ${{ secrets.MIN_BALANCE }}
+          REGISTER_COUNT: ${{ github.event.inputs.count || '5' }}
         run: python main.py
 
       - name: 保存账号记录到缓存（下次继续累积）
