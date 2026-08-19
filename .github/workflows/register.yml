@@ -43,3 +43,11 @@ jobs:
           POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
           MIN_BALANCE: ${{ secrets.MIN_BALANCE }}
         run: python main.py
+
+      - name: 上传已注册账号
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accounts
+          path: accounts.csv
+          if-no-files-found: ignore

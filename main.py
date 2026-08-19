@@ -3,6 +3,8 @@ import time
 import logging
 from dataclasses import dataclass
 from typing import Optional, Any
+import csv
+from datetime import datetime
 
 import Haozhu
 import Hu_api
@@ -788,6 +790,31 @@ class AccountRegistrar:
 
 
 # ============================================================
+# 保存账号
+# ============================================================
+
+ACCOUNTS_FILE = "accounts.csv"
+
+
+def save_account(result: dict) -> None:
+    """注册成功后把账号信息追加到 CSV 文件。"""
+    file_exists = os.path.isfile(ACCOUNTS_FILE)
+    with open(ACCOUNTS_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["时间", "手机号", "密码", "UserID", "Key", "状态"])
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            result.get("phone", ""),
+            result.get("password", ""),
+            result.get("user_id", ""),
+            result.get("key", ""),
+            result.get("message", ""),
+        ])
+    logger.info("账号已保存到 %s", ACCOUNTS_FILE)
+
+
+# ============================================================
 # main
 # ============================================================
 
@@ -802,6 +829,8 @@ def main():
         )
 
         result = registrar.register()
+
+        save_account(result)
 
         print()
         print("========================================")
