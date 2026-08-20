@@ -468,7 +468,6 @@ def solve_captcha(
             "detail": repr(exc),
         }
 def getticket() ->dict:
-    print("开始获取ticket值")
     parser = argparse.ArgumentParser(description="葫芦侠腾讯滑块验证自动化")
     parser.add_argument("--headed", action="store_true", help="显示浏览器窗口")
     parser.add_argument("--backend", choices=("auto", "ddddocr", "opencv"), default="auto")
@@ -483,7 +482,6 @@ def getticket() ->dict:
         headed=args.headed,
         post_url=args.post_url,
     )
-    print(result)
     return result
 
 

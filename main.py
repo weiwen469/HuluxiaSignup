@@ -4,7 +4,6 @@ import logging
 from dataclasses import dataclass
 from typing import Optional, Any
 import csv
-from datetime import datetime
 
 import Haozhu
 import Hu_api
@@ -18,7 +17,7 @@ load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="[%(levelname)s] %(message)s"
 )
 
 logger = logging.getLogger(__name__)
@@ -131,7 +130,7 @@ class AccountRegistrar:
 
     def get_ticket(self) -> dict:
 
-        logger.info(
+        logger.debug(
             "正在获取验证码 Ticket..."
         )
 
@@ -166,7 +165,7 @@ class AccountRegistrar:
                 f"randstr 不存在: {result}"
             )
 
-        logger.info(
+        logger.debug(
             "Ticket 获取成功"
         )
 
@@ -181,7 +180,7 @@ class AccountRegistrar:
 
     def check_balance(self) -> float:
 
-        logger.info(
+        logger.debug(
             "正在查询接码平台余额..."
         )
 
@@ -205,7 +204,7 @@ class AccountRegistrar:
                 f"查询余额请求异常: {e}"
             ) from e
 
-        logger.info(
+        logger.debug(
             "当前接码平台余额: %.4f",
             balance
         )
@@ -224,11 +223,11 @@ class AccountRegistrar:
 
     def get_phone(self) -> str:
 
-        logger.info(
+        logger.debug(
             "正在获取临时手机号..."
         )
 
-        logger.info(
+        logger.debug(
             "SID: %s",
             self.config.sid
         )
@@ -254,7 +253,7 @@ class AccountRegistrar:
 
         self.phone = str(phone)
 
-        logger.info(
+        logger.debug(
             "获取手机号成功: %s",
             self.phone
         )
@@ -273,7 +272,7 @@ class AccountRegistrar:
                 "手机号不存在"
             )
 
-        logger.info(
+        logger.debug(
             "正在发送短信验证码..."
         )
 
@@ -303,7 +302,7 @@ class AccountRegistrar:
                 f"发送短信失败: {result}"
             )
 
-        logger.info(
+        logger.debug(
             "短信发送成功"
         )
 
@@ -321,16 +320,16 @@ class AccountRegistrar:
                 "手机号不存在"
             )
 
-        logger.info(
+        logger.debug(
             "开始等待短信验证码..."
         )
 
-        logger.info(
+        logger.debug(
             "超时时间: %s 秒",
             self.config.sms_timeout
         )
 
-        logger.info(
+        logger.debug(
             "查询间隔: %.1f 秒",
             self.config.poll_interval
         )
@@ -366,7 +365,7 @@ class AccountRegistrar:
                     phone=self.phone
                 )
 
-                logger.info(
+                logger.debug(
                     "第 %d 次查询验证码: %s",
                     attempt,
                     message
@@ -376,7 +375,7 @@ class AccountRegistrar:
 
                     code = str(message)
 
-                    logger.info(
+                    logger.debug(
                         "获取验证码成功"
                     )
 
@@ -426,7 +425,7 @@ class AccountRegistrar:
                 "手机号不存在"
             )
 
-        logger.info(
+        logger.debug(
             "正在提交验证码..."
         )
 
@@ -443,7 +442,7 @@ class AccountRegistrar:
                 f"验证码校验请求异常: {e}"
             ) from e
 
-        logger.info(
+        logger.debug(
             "验证码校验完成"
         )
 
@@ -473,7 +472,7 @@ class AccountRegistrar:
                 "手机号不存在"
             )
 
-        logger.info(
+        logger.debug(
             "正在提交账号数据..."
         )
 
@@ -496,7 +495,7 @@ class AccountRegistrar:
                 f"账号数据返回格式错误: {data}"
             )
 
-        logger.info(
+        logger.debug(
             "账号数据获取成功"
         )
 
@@ -519,7 +518,7 @@ class AccountRegistrar:
                 f"设置密码失败，缺少 _key: {data}"
             )
 
-        logger.info(
+        logger.debug(
             "账号需要设置密码"
         )
 
@@ -549,7 +548,7 @@ class AccountRegistrar:
                 f"{result.get('msg', result)}"
             )
 
-        logger.info(
+        logger.debug(
             "账号密码设置成功"
         )
 
@@ -586,30 +585,10 @@ class AccountRegistrar:
             }
 
             logger.info(
-                "========================================"
-            )
-
-            logger.info(
-                "注册成功"
-            )
-
-            logger.info(
-                "手机号: %s",
-                self.phone
-            )
-
-            logger.info(
-                "UserID: %s",
-                data.get("userID")
-            )
-
-            logger.info(
-                "密码: %s",
-                self.config.account_password
-            )
-
-            logger.info(
-                "========================================"
+                "注册成功 | 手机号: %s | UserID: %s | 密码: %s",
+                self.phone,
+                data.get("userID"),
+                self.config.account_password,
             )
 
             return result
@@ -629,30 +608,10 @@ class AccountRegistrar:
             }
 
             logger.info(
-                "========================================"
-            )
-
-            logger.info(
-                "账号已经存在"
-            )
-
-            logger.info(
-                "手机号: %s",
-                self.phone
-            )
-
-            logger.info(
-                "UserID: %s",
-                data.get("userID")
-            )
-
-            logger.info(
-                "Key: %s",
-                data.get("_key")
-            )
-
-            logger.info(
-                "========================================"
+                "账号已存在 | 手机号: %s | UserID: %s | Key: %s",
+                self.phone,
+                data.get("userID"),
+                data.get("_key"),
             )
 
             return result
@@ -679,7 +638,7 @@ class AccountRegistrar:
 
         phone = self.phone
 
-        logger.info(
+        logger.debug(
             "正在释放手机号: %s",
             phone
         )
@@ -692,7 +651,7 @@ class AccountRegistrar:
                 phone=phone
             )
 
-            logger.info(
+            logger.debug(
                 "释放手机号结果: %s",
                 result
             )
@@ -769,13 +728,7 @@ class AccountRegistrar:
 
             return result
 
-        except Exception as e:
-
-            logger.error(
-                "注册流程失败: %s",
-                e
-            )
-
+        except Exception:
             raise
 
         finally:
@@ -791,7 +744,7 @@ class AccountRegistrar:
                 time.monotonic() - start_time
             )
 
-            logger.info(
+            logger.debug(
                 "本次任务耗时: %.2f 秒",
                 elapsed
             )
@@ -802,24 +755,47 @@ class AccountRegistrar:
 # ============================================================
 
 ACCOUNTS_FILE = "accounts.csv"
+CSV_HEADER = ["手机号", "密码", "UserID", "Key", "状态"]
+OLD_CSV_HEADER = ["时间", "手机号", "密码", "UserID", "Key", "状态"]
 
 
 def save_account(result: dict) -> None:
     """注册成功后把账号信息追加到 CSV 文件。"""
-    file_exists = os.path.isfile(ACCOUNTS_FILE)
-    with open(ACCOUNTS_FILE, "a", newline="", encoding="utf-8") as f:
+    row = [
+        result.get("phone", ""),
+        result.get("password", ""),
+        result.get("user_id", ""),
+        result.get("key", ""),
+        result.get("message", ""),
+    ]
+
+    if not os.path.isfile(ACCOUNTS_FILE):
+        with open(ACCOUNTS_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(CSV_HEADER)
+            writer.writerow(row)
+        return
+
+    with open(ACCOUNTS_FILE, "r", newline="", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+
+    # 兼容旧格式：把带“时间”列的 CSV 迁移成新表头
+    if rows and rows[0] == CSV_HEADER:
+        rows = rows[1:]
+    elif rows and rows[0] == OLD_CSV_HEADER:
+        rows = [
+            data[1:6] if len(data) >= 6 else data
+            for data in rows[1:]
+        ]
+    else:
+        rows = []
+
+    with open(ACCOUNTS_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["时间", "手机号", "密码", "UserID", "Key", "状态"])
-        writer.writerow([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            result.get("phone", ""),
-            result.get("password", ""),
-            result.get("user_id", ""),
-            result.get("key", ""),
-            result.get("message", ""),
-        ])
-    logger.info("账号已保存到 %s", ACCOUNTS_FILE)
+        writer.writerow(CSV_HEADER)
+        writer.writerows(rows)
+        writer.writerow(row)
+    logger.debug("账号已保存到 %s", ACCOUNTS_FILE)
 
 
 # ============================================================
@@ -835,27 +811,15 @@ def main():
     failed = 0
 
     logger.info(
-        "=" * 40
-    )
-    logger.info(
-        "本次计划注册 %d 个账号",
+        "开始注册 %d 个账号",
         total
-    )
-    logger.info(
-        "=" * 40
     )
 
     for i in range(1, total + 1):
 
         logger.info(
-            "=" * 40
-        )
-        logger.info(
-            "第 %d / %d 个账号",
+            "第 %d/%d 个账号",
             i, total
-        )
-        logger.info(
-            "=" * 40
         )
 
         try:
@@ -870,11 +834,6 @@ def main():
 
             success += 1
 
-            logger.info(
-                "第 %d 个账号注册成功: %s",
-                i, result.get("phone", "?")
-            )
-
         except Exception as e:
 
             failed += 1
@@ -887,21 +846,15 @@ def main():
         # 账号之间停顿一下，避免接码平台限流
         if i < total:
             wait = 3
-            logger.info(
+            logger.debug(
                 "等待 %d 秒后继续下一个...",
                 wait
             )
             time.sleep(wait)
 
     logger.info(
-        "=" * 40
-    )
-    logger.info(
-        "全部完成: 成功 %d / %d, 失败 %d",
+        "全部完成: 成功 %d/%d, 失败 %d",
         success, total, failed
-    )
-    logger.info(
-        "=" * 40
     )
 
 
