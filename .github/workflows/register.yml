@@ -39,14 +39,6 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: 恢复历史账号记录
-        id: restore-accounts
-        uses: actions/cache/restore@v4
-        with:
-          path: accounts.csv
-          key: accounts-csv-${{ github.run_id }}
-          restore-keys: accounts-csv-
-
       - name: 运行注册脚本
         env:
           HAOZHU_TOKEN: ${{ secrets.HAOZHU_TOKEN }}
@@ -56,18 +48,9 @@ jobs:
           POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
           MIN_BALANCE: ${{ secrets.MIN_BALANCE }}
           REGISTER_COUNT: ${{ github.event.inputs.count || '5' }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: python main.py
-
-      - name: 保存账号记录到缓存（下次继续累积）
-        uses: actions/cache/save@v4
-        with:
-          path: accounts.csv
-          key: accounts-csv-${{ github.run_id }}
-
-      - name: 上传已注册账号
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: accounts
-          path: accounts.csv
-          if-no-files-found: ignore

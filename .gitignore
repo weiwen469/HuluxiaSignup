@@ -4,3 +4,7 @@ __pycache__/
 .venv/
 venv/
 accounts.csv
+accounts1.csv
+accounts.db
+accounts.db-shm
+accounts.db-wal

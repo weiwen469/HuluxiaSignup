@@ -1,9 +1,9 @@
 import os
 import time
+import sqlite3
 import logging
 from dataclasses import dataclass
 from typing import Optional, Any
-import csv
 
 import Haozhu
 import Hu_api
@@ -93,6 +93,25 @@ class Config:
     register_count: int = int(
         os.getenv("REGISTER_COUNT", "1")
     )
+
+    # ========================================================
+    # 账号数据库文件
+    # ========================================================
+
+    accounts_db: str = os.getenv(
+        "ACCOUNTS_DB",
+        "accounts.db"
+    )
+
+    # ========================================================
+    # MySQL 数据库
+    # ========================================================
+
+    db_host: str = os.getenv("DB_HOST", "")
+    db_port: int = int(os.getenv("DB_PORT", "3306") or "3306")
+    db_name: str = os.getenv("DB_NAME", "")
+    db_user: str = os.getenv("DB_USER", "")
+    db_password: str = os.getenv("DB_PASSWORD", "")
 
 
 # ============================================================
@@ -754,48 +773,117 @@ class AccountRegistrar:
 # 保存账号
 # ============================================================
 
-ACCOUNTS_FILE = "accounts.csv"
-CSV_HEADER = ["手机号", "密码", "UserID", "Key", "状态"]
-OLD_CSV_HEADER = ["时间", "手机号", "密码", "UserID", "Key", "状态"]
+ACCOUNTS_DB = "accounts.db"
 
 
-def save_account(result: dict) -> None:
-    """注册成功后把账号信息追加到 CSV 文件。"""
-    row = [
+def get_db_connection(
+    db_path: str = ACCOUNTS_DB,
+    config: Optional[Config] = None,
+) -> Any:
+    """返回 MySQL 或 SQLite 数据库连接。"""
+    cfg = config or Config()
+
+    if cfg.db_host:
+        import pymysql
+        return pymysql.connect(
+            host=cfg.db_host,
+            port=cfg.db_port,
+            user=cfg.db_user,
+            password=cfg.db_password,
+            database=cfg.db_name,
+            charset="utf8mb4",
+            autocommit=True,
+        )
+
+    return sqlite3.connect(db_path)
+
+
+def init_accounts_db(db_path: str = ACCOUNTS_DB) -> None:
+    """创建账号数据库表。"""
+    cfg = Config()
+    conn = get_db_connection(db_path, cfg)
+    try:
+        cursor = conn.cursor()
+        if cfg.db_host:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS accounts (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    phone VARCHAR(64) NOT NULL UNIQUE,
+                    password VARCHAR(255) NOT NULL,
+                    user_id VARCHAR(64) NOT NULL,
+                    auth_key VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        else:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    phone TEXT NOT NULL UNIQUE,
+                    password TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    auth_key TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def save_account(
+    result: dict,
+    db_path: str = ACCOUNTS_DB
+) -> None:
+    """注册成功后把账号信息保存到数据库。"""
+    cfg = Config()
+    init_accounts_db(db_path)
+
+    row = (
         result.get("phone", ""),
         result.get("password", ""),
         result.get("user_id", ""),
         result.get("key", ""),
-        result.get("message", ""),
-    ]
+    )
 
-    if not os.path.isfile(ACCOUNTS_FILE):
-        with open(ACCOUNTS_FILE, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(CSV_HEADER)
-            writer.writerow(row)
-        return
+    conn = get_db_connection(db_path, cfg)
+    try:
+        cursor = conn.cursor()
+        if cfg.db_host:
+            cursor.execute(
+                """
+                INSERT INTO accounts
+                    (phone, password, user_id, auth_key)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    password = VALUES(password),
+                    user_id = VALUES(user_id),
+                    auth_key = VALUES(auth_key)
+                """,
+                row,
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO accounts
+                    (phone, password, user_id, auth_key)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(phone) DO UPDATE SET
+                    password = excluded.password,
+                    user_id = excluded.user_id,
+                    auth_key = excluded.auth_key
+                """,
+                row,
+            )
+        conn.commit()
+    finally:
+        conn.close()
 
-    with open(ACCOUNTS_FILE, "r", newline="", encoding="utf-8") as f:
-        rows = list(csv.reader(f))
-
-    # 兼容旧格式：把带“时间”列的 CSV 迁移成新表头
-    if rows and rows[0] == CSV_HEADER:
-        rows = rows[1:]
-    elif rows and rows[0] == OLD_CSV_HEADER:
-        rows = [
-            data[1:6] if len(data) >= 6 else data
-            for data in rows[1:]
-        ]
-    else:
-        rows = []
-
-    with open(ACCOUNTS_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(CSV_HEADER)
-        writer.writerows(rows)
-        writer.writerow(row)
-    logger.debug("账号已保存到 %s", ACCOUNTS_FILE)
+    logger.debug("账号已保存到数据库 %s", db_path)
 
 
 # ============================================================
@@ -805,6 +893,7 @@ def save_account(result: dict) -> None:
 def main():
 
     config = Config()
+    init_accounts_db(config.accounts_db)
 
     total = config.register_count
     success = 0
@@ -830,7 +919,7 @@ def main():
 
             result = registrar.register()
 
-            save_account(result)
+            save_account(result, config.accounts_db)
 
             success += 1
 
